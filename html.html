@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventory Management System</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body{
+    background:#f4f6f9;
+    transition:0.3s;
+}
+
+.dark-mode{
+    background:#121212;
+    color:white;
+}
+
+.dark-mode .card,
+.dark-mode .table,
+.dark-mode .form-control,
+.dark-mode .form-select{
+    background:#1f1f1f;
+    color:white;
+}
+
+.card{
+    border:none;
+    box-shadow:0 2px 10px rgba(0,0,0,0.1);
+}
+
+.dashboard-card{
+    text-align:center;
+}
+
+.low-stock{
+    background:#ffebee !important;
+}
+
+footer{
+    margin-top:30px;
+}
+</style>
+
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-primary">
+<div class="container">
+<h3 class="text-white m-0">Inventory Management System</h3>
+
+<button class="btn btn-light" id="darkBtn">
+Dark Mode
+</button>
+</div>
+</nav>
+
+<div class="container mt-4">
+
+<div class="row g-3 mb-4">
+
+<div class="col-md-3">
+<div class="card dashboard-card p-3">
+<h6>Total Products</h6>
+<h2 id="totalProducts">0</h2>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card dashboard-card p-3">
+<h6>Total Quantity</h6>
+<h2 id="totalQty">0</h2>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card dashboard-card p-3">
+<h6>Total Value</h6>
+<h2 id="totalValue">₹0</h2>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="card dashboard-card p-3">
+<h6>Low Stock</h6>
+<h2 id="lowStock">0</h2>
+</div>
+</div>
+
+</div>
+
+<div class="row">
+
+<div class="col-lg-4">
+
+<div class="card p-3">
+
+<h4>Add Product</h4>
+
+<form id="productForm">
+
+<input type="hidden" id="editIndex">
+
+<div class="mb-2">
+<input
+type="text"
+id="name"
+class="form-control"
+placeholder="Product Name"
+required>
+</div>
+
+<div class="mb-2">
+<select id="category" class="form-select">
+<option>Electronics</option>
+<option>Furniture</option>
+<option>Stationery</option>
+<option>Books</option>
+<option>Sports</option>
+</select>
+</div>
+
+<div class="mb-2">
+<input
+type="number"
+id="qty"
+class="form-control"
+placeholder="Quantity"
+required>
+</div>
+
+<div class="mb-2">
+<input
+type="number"
+id="price"
+class="form-control"
+placeholder="Price"
+required>
+</div>
+
+<button class="btn btn-success w-100">
+Save Product
+</button>
+
+</form>
+
+</div>
+
+</div>
+
+<div class="col-lg-8">
+
+<div class="card p-3">
+
+<div class="row mb-3">
+
+<div class="col-md-4">
+<input
+type="text"
+id="search"
+class="form-control"
+placeholder="Search Product">
+</div>
+
+<div class="col-md-3">
+<select
+id="filterCategory"
+class="form-select">
+
+<option value="All">
+All Categories
+</option>
+
+<option>Electronics</option>
+<option>Furniture</option>
+<option>Stationery</option>
+<option>Books</option>
+<option>Sports</option>
+
+</select>
+</div>
+
+<div class="col-md-2">
+<button
+class="btn btn-warning w-100"
+onclick="exportCSV()">
+CSV
+</button>
+</div>
+
+<div class="col-md-3">
+<button
+class="btn btn-info w-100"
+onclick="printReport()">
+Print
+</button>
+</div>
+
+</div>
+
+<div class="table-responsive">
+
+<table class="table table-bordered table-hover">
+
+<thead class="table-dark">
+
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Category</th>
+<th>Qty</th>
+<th>Price</th>
+<th>Status</th>
+<th>Date</th>
+<th>Action</th>
+</tr>
+
+</thead>
+
+<tbody id="productTable"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<footer class="bg-dark text-white text-center p-3">
+Inventory Management System © 2026
+</footer>
+
+<script>
+
+let products =
+JSON.parse(localStorage.getItem("inventory"))
+|| [];
+
+let editId = null;
+
+function saveData(){
+localStorage.setItem(
+"inventory",
+JSON.stringify(products)
+);
+}
+
+function showToast(msg){
+alert(msg);
+}
+
+function getStatus(qty){
+
+qty = Number(qty);
+
+if(qty > 20)
+return "In Stock";
+
+if(qty > 5)
+return "Limited";
+
+return "Low Stock";
+}
+
+function updateDashboard(){
+
+let totalProducts =
+products.length;
+
+let totalQty =
+products.reduce(
+(sum,p)=>sum+Number(p.qty),
+0
+);
+
+let totalValue =
+products.reduce(
+(sum,p)=>sum+(p.qty*p.price),
+0
+);
+
+let lowStock =
+products.filter(
+p=>p.qty<5
+).length;
+
+document.getElementById(
+"totalProducts"
+).innerText = totalProducts;
+
+document.getElementById(
+"totalQty"
+).innerText = totalQty;
+
+document.getElementById(
+"totalValue"
+).innerText = "₹"+totalValue;
+
+document.getElementById(
+"lowStock"
+).innerText = lowStock;
+}
+
+function displayProducts(){
+
+let table =
+document.getElementById(
+"productTable"
+);
+
+table.innerHTML="";
+
+let search =
+document.getElementById(
+"search"
+).value.toLowerCase();
+
+let category =
+document.getElementById(
+"filterCategory"
+).value;
+
+products.forEach((product,index)=>{
+
+if(
+!product.name.toLowerCase().includes(search)
+&&
+!product.category.toLowerCase().includes(search)
+){
+return;
+}
+
+if(
+category!="All"
+&&
+product.category!=category
+){
+return;
+}
+
+let rowClass =
+product.qty<5
+?
+"low-stock"
+:
+"";
+
+table.innerHTML += `
+
+<tr class="${rowClass}">
+
+<td>${index+1}</td>
+
+<td>${product.name}</td>
+
+<td>${product.category}</td>
+
+<td>${product.qty}</td>
+
+<td>₹${product.price}</td>
+
+<td>${getStatus(product.qty)}</td>
+
+<td>${product.date}</td>
+
+<td>
+
+<button
+class="btn btn-warning btn-sm"
+onclick="editProduct(${index})">
+Edit
+</button>
+
+<button
+class="btn btn-danger btn-sm"
+onclick="deleteProduct(${index})">
+Delete
+</button>
+
+</td>
+
+</tr>
+
+`;
+
+});
+
+updateDashboard();
+saveData();
+
+}
+
+document
+.getElementById("productForm")
+.addEventListener(
+"submit",
+function(e){
+
+e.preventDefault();
+
+let name =
+document.getElementById("name").value;
+
+let category =
+document.getElementById("category").value;
+
+let qty =
+document.getElementById("qty").value;
+
+let price =
+document.getElementById("price").value;
+
+let today =
+new Date()
+.toLocaleDateString();
+
+if(editId===null){
+
+products.push({
+name,
+category,
+qty,
+price,
+date:today
+});
+
+showToast(
+"Product Added Successfully"
+);
+
+}
+else{
+
+products[editId]={
+name,
+category,
+qty,
+price,
+date:today
+};
+
+showToast(
+"Product Updated Successfully"
+);
+
+editId=null;
+
+}
+
+displayProducts();
+
+this.reset();
+
+});
+
+function editProduct(index){
+
+let p = products[index];
+
+document.getElementById(
+"name"
+).value = p.name;
+
+document.getElementById(
+"category"
+).value = p.category;
+
+document.getElementById(
+"qty"
+).value = p.qty;
+
+document.getElementById(
+"price"
+).value = p.price;
+
+editId=index;
+
+}
+
+function deleteProduct(index){
+
+if(confirm(
+"Delete this product?"
+)){
+
+products.splice(index,1);
+
+displayProducts();
+
+showToast(
+"Product Deleted"
+);
+
+}
+
+}
+
+document
+.getElementById("search")
+.addEventListener(
+"keyup",
+displayProducts
+);
+
+document
+.getElementById(
+"filterCategory"
+)
+.addEventListener(
+"change",
+displayProducts
+);
+
+function exportCSV(){
+
+let csv =
+"Name,Category,Qty,Price,Date\n";
+
+products.forEach(p=>{
+
+csv +=
+`${p.name},
+${p.category},
+${p.qty},
+${p.price},
+${p.date}\n`;
+
+});
+
+let blob =
+new Blob(
+[csv],
+{type:"text/csv"}
+);
+
+let a =
+document.createElement("a");
+
+a.href =
+URL.createObjectURL(blob);
+
+a.download =
+"inventory.csv";
+
+a.click();
+
+}
+
+function printReport(){
+window.print();
+}
+
+document
+.getElementById("darkBtn")
+.addEventListener(
+"click",
+()=>{
+
+document.body.classList.toggle(
+"dark-mode"
+);
+
+}
+);
+
+displayProducts();
+
+</script>
+
+</body>
+</html>
